@@ -1,6 +1,8 @@
+
+
+#include "lexer.h"
 #include <iostream>
-#include <fstream>
-#include <regex>
+#include <vector>
 #include <string>
 #include <vector>
 
@@ -59,20 +61,20 @@ vector<Token> tokenize(const string& code) {
         else if (val == ";") tokens.push_back({SEMI, val});
         else tokens.push_back({UNKNOWN, val});
     }
-
-    return tokens;
+    return {TokenType::SEMI, ""};  // Default to empty SEMI token
 }
 
-int main() {
-    ifstream infile("test_programs/text_input.txt");
-    string code((istreambuf_iterator<char>(infile)),
-                istreambuf_iterator<char>());
-
-    vector<Token> tokens = tokenize(code);
-
-    for (const auto& token : tokens) {
-        cout << tokenTypeToStr(token.type) << ": " << token.value << endl;
+Token advance() {
+    if (current < tokens.size()) {
+        return tokens[current++];
     }
+    return {TokenType::SEMI, ""};  // Default to empty SEMI token
+}
 
-    return 0;
+bool match(TokenType type) {
+    if (current < tokens.size() && tokens[current].type == type) {
+        advance();
+        return true;
+    }
+    return false;
 }
