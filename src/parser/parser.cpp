@@ -1,43 +1,16 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include "/Users/ankitsingh/Desktop/MyOwnCompiler/src/lexer/lexer.h"
+#include "/Users/ankitsingh/Desktop/MyOwnCompiler/src/parser/parser.h"
 
 using namespace std;
 
-// Token types (same as lexer)
-enum TokenType {
-    ID, NUMBER, ASSIGN, PLUS, MINUS, MULT, DIV, SEMI, UNKNOWN
-};
-
-struct Token {
-    TokenType type;
-    string value;
-};
-
 // Global variables
-vector<Token> tokens;
-int current = 0;
+extern vector<Token> tokens;  // Declared in lexer.cpp
+extern int current;           // Declared in lexer.cpp
 
-// Function to get current token
-Token peek() {
-    return tokens[current];
-}
-
-// Function to consume a token and move ahead
-Token advance() {
-    return tokens[current++];
-}
-
-// Match and consume a token of expected type
-bool match(TokenType type) {
-    if (current < tokens.size() && tokens[current].type == type) {
-        advance();
-        return true;
-    }
-    return false;
-}
-
-// === Grammar rules ===
+// Grammar rule functions
 
 bool parseTerm() {
     if (match(NUMBER) || match(ID)) {
@@ -81,19 +54,29 @@ bool parseProgram() {
     return true;
 }
 
-// === For testing: mock lexer output ===
-int main() {
-    // Simulate lexer output: int x = 5 + 3;
-    tokens = {
-        {ID, "int"}, {ID, "x"}, {ASSIGN, "="},
-        {NUMBER, "5"}, {PLUS, "+"}, {NUMBER, "3"}, {SEMI, ";"}
-    };
+// Main parsing function
+ASTNode* parse(const std::vector<Token>& tokensVec) {
+    tokens = tokensVec;
+    current = 0;
 
     if (parseProgram()) {
-        cout << " Parsing Successful!" << endl;
+        ASTNode* root = new ASTNode{"Program", "", {}};
+        // For now, just return a placeholder root node
+        return root;
     } else {
-        cout << " Syntax Error!" << endl;
+        std::cerr << "Syntax Error!" << std::endl;
+        return nullptr;
     }
+}
+
+// === For testing: mock lexer output ===
+
+int main() {
+    std::string input = "int x = 5 + 3;";
+    std::vector<Token> tokens = tokenize(input);  // ✅ Now 'tokens' is declared
+
+    ASTNode* root = parse(tokens);  // ✅ Works now
+    // (You can do something with 'root' here)
 
     return 0;
 }
