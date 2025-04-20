@@ -1,34 +1,24 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include "../lexer/lexer.h"
+#include "parser.h"
 
 using namespace std;
 
-// Token types (same as lexer)
-enum TokenType {
-    ID, NUMBER, ASSIGN, PLUS, MINUS, MULT, DIV, SEMI, UNKNOWN
-};
-
-struct Token {
-    TokenType type;
-    string value;
-};
-
-// Global variables
+// === Global variables ===
 vector<Token> tokens;
 int current = 0;
 
-// Function to get current token
+// === Utility functions ===
 Token peek() {
     return tokens[current];
 }
 
-// Function to consume a token and move ahead
 Token advance() {
     return tokens[current++];
 }
 
-// Match and consume a token of expected type
 bool match(TokenType type) {
     if (current < tokens.size() && tokens[current].type == type) {
         advance();
@@ -37,18 +27,14 @@ bool match(TokenType type) {
     return false;
 }
 
-// === Grammar rules ===
+// === Grammar functions ===
 
 bool parseTerm() {
-    if (match(NUMBER) || match(ID)) {
-        return true;
-    }
-    return false;
+    return match(NUMBER) || match(ID);
 }
 
 bool parseExpr() {
     if (!parseTerm()) return false;
-
     while (match(PLUS) || match(MINUS)) {
         if (!parseTerm()) return false;
     }
@@ -56,7 +42,6 @@ bool parseExpr() {
 }
 
 bool parseType() {
-    // For now, just treat ID with value "int"/"float"/"char" as type
     if (peek().type == ID &&
         (peek().value == "int" || peek().value == "float" || peek().value == "char")) {
         advance();
@@ -81,19 +66,16 @@ bool parseProgram() {
     return true;
 }
 
-// === For testing: mock lexer output ===
-int main() {
-    // Simulate lexer output: int x = 5 + 3;
-    tokens = {
-        {ID, "int"}, {ID, "x"}, {ASSIGN, "="},
-        {NUMBER, "5"}, {PLUS, "+"}, {NUMBER, "3"}, {SEMI, ";"}
-    };
+// === Parse entry point ===
+ASTNode* parse(const vector<Token>& tokensVec) {
+    tokens = tokensVec;
+    current = 0;
 
     if (parseProgram()) {
-        cout << " Parsing Successful!" << endl;
+        ASTNode* root = new ASTNode{"Program", "", {}};
+        return root;
     } else {
-        cout << " Syntax Error!" << endl;
+        cerr << "Syntax Error!" << endl;
+        return nullptr;
     }
-
-    return 0;
 }
