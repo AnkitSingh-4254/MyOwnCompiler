@@ -1,24 +1,34 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include "../lexer/lexer.h"
-#include "parser.h"
 
 using namespace std;
 
-// === Global variables ===
+// Token types (same as lexer)
+enum TokenType {
+    ID, NUMBER, ASSIGN, PLUS, MINUS, MULT, DIV, SEMI, UNKNOWN
+};
+
+struct Token {
+    TokenType type;
+    string value;
+};
+
+// Global variables
 vector<Token> tokens;
 int current = 0;
 
-// === Utility functions ===
+// Function to get current token
 Token peek() {
     return tokens[current];
 }
 
+// Function to consume a token and move ahead
 Token advance() {
     return tokens[current++];
 }
 
+// Match and consume a token of expected type
 bool match(TokenType type) {
     if (current < tokens.size() && tokens[current].type == type) {
         advance();
@@ -27,7 +37,7 @@ bool match(TokenType type) {
     return false;
 }
 
-// === Grammar functions ===
+// === Grammar rules ===
 
 bool parseTerm() {
     return match(NUMBER) || match(ID);
@@ -66,16 +76,19 @@ bool parseProgram() {
     return true;
 }
 
-// === Parse entry point ===
-ASTNode* parse(const vector<Token>& tokensVec) {
-    tokens = tokensVec;
-    current = 0;
+// === For testing: mock lexer output ===
+int main() {
+    // Simulate lexer output: int x = 5 + 3;
+    tokens = {
+        {ID, "int"}, {ID, "x"}, {ASSIGN, "="},
+        {NUMBER, "5"}, {PLUS, "+"}, {NUMBER, "3"}, {SEMI, ";"}
+    };
 
     if (parseProgram()) {
-        ASTNode* root = new ASTNode{"Program", "", {}};
-        return root;
+        cout << " Parsing Successful!" << endl;
     } else {
-        cerr << "Syntax Error!" << endl;
-        return nullptr;
+        cout << " Syntax Error!" << endl;
     }
+
+    return 0;
 }

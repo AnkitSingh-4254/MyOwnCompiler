@@ -1,6 +1,8 @@
-#include "lexer.h"
-#include <regex>
 #include <iostream>
+#include <fstream>
+#include <regex>
+#include <string>
+#include <vector>
 
 using namespace std;
 
@@ -27,4 +29,18 @@ vector<Token> tokenize(const string& input) {
     }
 
     return tokens;
+}
+
+int main() {
+    ifstream infile("test_programs/text_input.txt");
+    string code((istreambuf_iterator<char>(infile)),
+                istreambuf_iterator<char>());
+
+    vector<Token> tokens = tokenize(code);
+
+    for (const auto& token : tokens) {
+        cout << tokenTypeToStr(token.type) << ": " << token.value << endl;
+    }
+
+    return 0;
 }
