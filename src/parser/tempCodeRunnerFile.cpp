@@ -1,0 +1,1 @@
+bool match(TokenType type)

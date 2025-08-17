@@ -1,15 +1,8 @@
 # macOS system files
 .DS_Store
 
-# VSCode settings
-.vscode/
-
-# Build output
-cpp-compiler/build/
-
-# CMake cache
-CMakeFiles/
-CMakeCache.txt
-cmake_install.cmake
-Makefile
+# Build files
+build/
+*.o
+*.out
 
