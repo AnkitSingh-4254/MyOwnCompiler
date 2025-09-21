@@ -1,8 +1,26 @@
 # macOS system files
 .DS_Store
 
-# Build files
+# Build files (top-level and subprojects)
 build/
-*.o
-*.out
+cpp-compiler/build/
 
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake-build-*/
+*.cmake
+compile_commands.json
+
+# Object and binary artefacts
+*.o
+*.obj
+*.out
+*.a
+*.so
+*.dylib
+*.dll
+*.d
+
+# Editor/IDE settings
+.vscode/

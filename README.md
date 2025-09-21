@@ -1,29 +1,47 @@
 # MyOwnCompiler
 
-**MyOwnCompiler** is a C++ project where I build a compiler from scratch, focusing on lexical analysis, parsing, and semantic checking.
+MyOwnCompiler is a C++ compiler project with separate phases for lexing, parsing, semantic analysis, code generation, and a simple VM. The current codebase is organized under `cpp-compiler/` and uses CMake for builds.
 
 ## Features
-- Lexical Analysis
-- Syntax Parsing
-- Semantic Checking
+- Lexical analysis (lexer)
+- Parsing (recursive descent)
+- Semantic analysis
+- Code generation + opcodes
+- Simple VM backend
 
-## Getting Started
-1. Clone the repository:
-    ```bash
-    git clone https://github.com/AnkitSingh-4254/MyOwnCompiler.git
-    ```
-2. Navigate to the project directory:
-    ```bash
-    cd MyOwnCompiler
-    ```
-3. Compile and run the project:
-    ```bash
-    g++ src/main.cpp -o compiler
-    ./compiler
-    ```
+## Project layout
+- `cpp-compiler/` — CMake-based C++ source tree
+  - `src/assembler/` — assembler
+  - `src/lexer/` — lexer
+  - `src/parser/` — parser
+  - `src/semantic/` — semantic analysis
+  - `src/codegen/` — code generation
+  - `src/common/` — shared AST/token utilities
+  - `src/main.cpp` — entrypoint
 
-## Technologies Used
-- C++
-- Lexical Analysis
-- Parsing
-- Semantic Checking
+## Build (with CMake)
+Out-of-source build in the `cpp-compiler/build/` directory:
+
+```bash
+cmake -S cpp-compiler -B cpp-compiler/build -DCMAKE_BUILD_TYPE=Release
+cmake --build cpp-compiler/build -- -j
+```
+
+Run the compiler:
+
+```bash
+./cpp-compiler/build/mycompiler
+```
+
+Clean build artefacts (safe to delete):
+
+```bash
+rm -rf cpp-compiler/build
+```
+
+## Development
+- Requires: CMake (>= 3.10) and a C++17 compiler (Clang or GCC)
+- Recommended: VS Code with C++ extensions
+
+## License
+See `LICENSE`.
