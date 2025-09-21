@@ -1,179 +1,85 @@
-#include "parser.h"
-#include <stdexcept>
+// src/parser/parser.cpp
+// This file implements the parser, which builds an Abstract Syntax Tree (AST)
+// from a stream of tokens.
+
 #include <iostream>
+#include "parser.h"
 
-// ---------------- Constructor ----------------
-Parser::Parser(const std::vector<Token>& tokens) : tokens(tokens), current(0) {}
+// Forward declarations
+static std::unique_ptr<ParserASTNode> parseExpression(const std::vector<Token>& tokens, size_t& currentTokenIndex);
+static std::unique_ptr<ParserASTNode> parseStatement(const std::vector<Token>& tokens, size_t& currentTokenIndex);
 
-// ---------------- Utility Functions ----------------
-const Token& Parser::peek() const {
-    return tokens[current];
+// Main parsing function.
+// It parses a single statement or expression and returns its AST.
+std::unique_ptr<ParserASTNode> parse(const std::vector<Token>& tokens) {
+    size_t currentTokenIndex = 0;
+    auto node = parseStatement(tokens, currentTokenIndex);
+    return node;
 }
 
-const Token& Parser::previous() const {
-    return tokens[current - 1];
-}
-
-const Token& Parser::advance() {
-    if (!isAtEnd()) current++;
-    return previous();
-}
-
-bool Parser::isAtEnd() const {
-    return peek().type == TokenType::END_OF_FILE;
-}
-
-bool Parser::check(TokenType type) const {
-    if (isAtEnd()) return false;
-    return peek().type == type;
-}
-
-bool Parser::match(TokenType type) {
-    if (check(type)) {
-        advance();
-        return true;
-    }
-    return false;
-}
-
-bool Parser::matchOperator(const std::string& op) {
-    if (peek().type == TokenType::OPERATOR && peek().lexeme == op) {
-        advance();
-        return true;
-    }
-    return false;
-}
-
-const Token& Parser::consume(TokenType expected, const std::string& errorMessage) {
-    if (check(expected)) return advance();
-    throw std::runtime_error("Parse error at '" + peek().lexeme + "': " + errorMessage);
-}
-
-// ---------------- Error Recovery ----------------
-void Parser::synchronize() {
-    advance();
-    while (!isAtEnd()) {
-        if (previous().type == TokenType::SEMICOLON) return;
-        switch (peek().type) {
-            case TokenType::KEYWORD:
-            case TokenType::IDENTIFIER:
-            case TokenType::NUMBER:
-                return;
-            default:
-                break;
-        }
-        advance();
-    }
-}
-
-// ---------------- Parsing Entry ----------------
-std::unique_ptr<ProgramNode> Parser::parseProgram() {
-    auto program = std::make_unique<ProgramNode>();
-
-    while (!isAtEnd()) {
-        try {
-            auto decl = parseDeclaration();
-            if (decl) program->statements.push_back(std::move(decl));
-        } catch (const std::exception& e) {
-            std::cerr << e.what() << std::endl;
-            synchronize();
+// Parse a single statement: either assignment (ID = expr ;) or a plain expression (; optional)
+static std::unique_ptr<ParserASTNode> parseStatement(const std::vector<Token>& tokens, size_t& i) {
+    if (i < tokens.size()) {
+        // Lookahead for simple assignment: ID '='
+        if (i + 1 < tokens.size() && tokens[i].type == ID && tokens[i + 1].type == ASSIGN) {
+            auto left = std::make_unique<ParserASTNode>(ParserASTNode::ID, tokens[i].value);
+            i += 2; // consume ID and '='
+            auto right = parseExpression(tokens, i);
+            if (!right) {
+                std::cerr << "Parser Error: Missing right-hand side of assignment." << std::endl;
+                return nullptr;
+            }
+            auto assign = std::make_unique<ParserASTNode>(ParserASTNode::BINARY_OP, "=");
+            assign->children.push_back(std::move(left));
+            assign->children.push_back(std::move(right));
+            if (i < tokens.size() && tokens[i].type == SEMI) { ++i; } // optional ';'
+            return std::move(assign);
         }
     }
-    return program;
-}
-
-// ---------------- Grammar Rules ----------------
-std::unique_ptr<ASTNode> Parser::parseDeclaration() {
-    // For now, treat every top-level as a statement
-    return parseStatement();
-}
-
-std::unique_ptr<ASTNode> Parser::parseStatement() {
-    // Extend later for if, while, etc.
-    return parseExpression();
-}
-
-std::unique_ptr<ASTNode> Parser::parseExpression() {
-    return parseAssignment();
-}
-
-std::unique_ptr<ASTNode> Parser::parseAssignment() {
-    auto expr = parseEquality();
-
-    if (matchOperator("=")) {
-        auto value = parseAssignment();
-        return std::make_unique<BinaryNode>("=", std::move(expr), std::move(value));
-    }
+    // Fallback to plain expression
+    auto expr = parseExpression(tokens, i);
+    if (i < tokens.size() && tokens[i].type == SEMI) { ++i; }
     return expr;
 }
 
-std::unique_ptr<ASTNode> Parser::parseEquality() {
-    auto expr = parseComparison();
-
-    while (matchOperator("==") || matchOperator("!=")) {
-        std::string op = previous().lexeme;
-        auto right = parseComparison();
-        expr = std::make_unique<BinaryNode>(op, std::move(expr), std::move(right));
-    }
-    return expr;
-}
-
-std::unique_ptr<ASTNode> Parser::parseComparison() {
-    auto expr = parseTerm();
-
-    while (matchOperator("<") || matchOperator(">") || matchOperator("<=") || matchOperator(">=")) {
-        std::string op = previous().lexeme;
-        auto right = parseTerm();
-        expr = std::make_unique<BinaryNode>(op, std::move(expr), std::move(right));
-    }
-    return expr;
-}
-
-std::unique_ptr<ASTNode> Parser::parseTerm() {
-    auto expr = parseFactor();
-
-    while (matchOperator("+") || matchOperator("-")) {
-        std::string op = previous().lexeme;
-        auto right = parseFactor();
-        expr = std::make_unique<BinaryNode>(op, std::move(expr), std::move(right));
-    }
-    return expr;
-}
-
-std::unique_ptr<ASTNode> Parser::parseFactor() {
-    auto expr = parseUnary();
-
-    while (matchOperator("*") || matchOperator("/")) {
-        std::string op = previous().lexeme;
-        auto right = parseUnary();
-        expr = std::make_unique<BinaryNode>(op, std::move(expr), std::move(right));
-    }
-    return expr;
-}
-
-std::unique_ptr<ASTNode> Parser::parseUnary() {
-    if (matchOperator("!") || matchOperator("-")) {
-        std::string op = previous().lexeme;
-        auto right = parseUnary();
-        return std::make_unique<UnaryNode>(op, std::move(right));
-    }
-    return parsePrimary();
-}
-
-std::unique_ptr<ASTNode> Parser::parsePrimary() {
-    if (match(TokenType::NUMBER)) {
-        return std::make_unique<NumberNode>(previous().lexeme);
+// Simple expression parser for basic arithmetic (left term, then optional +/- rhs).
+static std::unique_ptr<ParserASTNode> parseExpression(const std::vector<Token>& tokens, size_t& currentTokenIndex) {
+    if (currentTokenIndex >= tokens.size()) {
+        return nullptr;
     }
 
-    if (match(TokenType::IDENTIFIER)) {
-        return std::make_unique<IdentifierNode>(previous().lexeme);
+    std::unique_ptr<ParserASTNode> left = nullptr;
+
+    // Handle number or ID literals.
+    if (tokens[currentTokenIndex].type == NUMBER) {
+        left = std::make_unique<ParserASTNode>(ParserASTNode::NUMBER_LITERAL, tokens[currentTokenIndex].value);
+        currentTokenIndex++;
+    } else if (tokens[currentTokenIndex].type == ID) {
+        left = std::make_unique<ParserASTNode>(ParserASTNode::ID, tokens[currentTokenIndex].value);
+        currentTokenIndex++;
+    } else {
+        std::cerr << "Parser Error: Unexpected token type at index " << currentTokenIndex << std::endl;
+        return nullptr;
     }
 
-    if (match(TokenType::LEFT_PAREN)) {
-        auto expr = parseExpression();
-        consume(TokenType::RIGHT_PAREN, "Expect ')' after expression.");
-        return expr;
+    // Check for a binary operator (+ or - for now).
+    if (currentTokenIndex < tokens.size() && (tokens[currentTokenIndex].type == PLUS || tokens[currentTokenIndex].type == MINUS)) {
+        Token opToken = tokens[currentTokenIndex];
+        currentTokenIndex++;
+
+        // Recursively parse the right side of the expression.
+        std::unique_ptr<ParserASTNode> right = parseExpression(tokens, currentTokenIndex);
+
+        if (right) {
+            auto binaryOpNode = std::make_unique<ParserASTNode>(ParserASTNode::BINARY_OP, opToken.value);
+            binaryOpNode->children.push_back(std::move(left));
+            binaryOpNode->children.push_back(std::move(right));
+            return binaryOpNode;
+        } else {
+            std::cerr << "Parser Error: Missing right-hand side of binary operation." << std::endl;
+            return nullptr;
+        }
     }
 
-    throw std::runtime_error("Unexpected token: " + peek().lexeme);
+    return left;
 }

@@ -1,1 +1,0 @@
-bool match(TokenType type)

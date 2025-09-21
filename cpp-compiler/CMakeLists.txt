@@ -1,11 +1,10 @@
 cmake_minimum_required(VERSION 3.10)
 project(mycompiler LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Optional: show compile commands (helpful for debugging)
-# set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 
 # Add the executable and all .cpp files
 add_executable(mycompiler
@@ -31,4 +30,11 @@ target_include_directories(mycompiler PRIVATE
     src/codegen
     src/common
     src/semantic
+
+)
+# Custom run target
+add_custom_target(run
+    COMMAND mycompiler
+    DEPENDS mycompiler
+    WORKING_DIRECTORY ${CMAKE_PROJECT_DIR}
 )

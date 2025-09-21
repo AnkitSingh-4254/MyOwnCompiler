@@ -1,228 +1,53 @@
+// src/lexer/lexer.cpp
+// This file implements the lexical analysis functionality.
+
+#include <iostream>
+#include <fstream>
+#include <regex>
+#include <string>
+#include <vector>
+
+// Include the header file to access Token and TokenType
 #include "lexer.h"
 
-#include <cctype>
-#include <iostream>
-
-Lexer::Lexer(const std::string& sourceCode)
-    : source(sourceCode), start(0), current(0), line(1), column(1) {}
-
-std::vector<Token> Lexer::tokenize() {
-    while (!isAtEnd()) {
-        start = current;
-        scanToken();
+// Converts a TokenType enum to a readable string.
+std::string tokenTypeToStr(TokenType type) {
+    switch (type) {
+        case NUMBER: return "NUMBER";
+        case ID: return "ID";
+        case PLUS: return "PLUS";
+        case MINUS: return "MINUS";
+        case MULT: return "MULT";
+        case DIV: return "DIV";
+        case ASSIGN: return "ASSIGN";
+        case SEMI: return "SEMI";
+        default: return "UNKNOWN";
     }
-    tokens.emplace_back(TokenType::END_OF_FILE, "", line, column);
+}
+
+// Tokenizes the input string based on a regular expression.
+std::vector<Token> tokenize(const std::string& input) {
+    std::vector<Token> tokens;
+    // This regex pattern matches numbers, identifiers, and common operators.
+    std::regex tokenPattern(R"(\d+|[a-zA-Z_][a-zA-Z0-9_]*|[+\-*/=;])");
+    auto words_begin = std::sregex_iterator(input.begin(), input.end(), tokenPattern);
+    auto words_end = std::sregex_iterator();
+
+    for (auto i = words_begin; i != words_end; ++i) {
+        std::smatch match = *i;
+        std::string val = match.str();
+        if (std::regex_match(val, std::regex(R"(\d+)"))) {
+            tokens.push_back({NUMBER, val});
+        } else if (std::regex_match(val, std::regex(R"([a-zA-Z_][a-zA-Z0-9_]*)"))) {
+            tokens.push_back({ID, val});
+        } else if (val == "+") tokens.push_back({PLUS, val});
+        else if (val == "-") tokens.push_back({MINUS, val});
+        else if (val == "*") tokens.push_back({MULT, val});
+        else if (val == "/") tokens.push_back({DIV, val});
+        else if (val == "=") tokens.push_back({ASSIGN, val});
+        else if (val == ";") tokens.push_back({SEMI, val});
+        else tokens.push_back({UNKNOWN, val});
+    }
+
     return tokens;
-}
-
-bool Lexer::isAtEnd() const {
-    return current >= source.length();
-}
-
-char Lexer::peek() const {
-    return isAtEnd() ? '\0' : source[current];
-}
-
-char Lexer::peekNext() const {
-    return (current + 1 >= source.length()) ? '\0' : source[current + 1];
-}
-
-char Lexer::advance() {
-    current++;
-    column++;
-    return source[current - 1];
-}
-
-bool Lexer::match(char expected) {
-    if (isAtEnd() || source[current] != expected) return false;
-    current++;
-    column++;
-    return true;
-}
-
-void Lexer::skipWhitespace() {
-    while (!isAtEnd()) {
-        char c = peek();
-        switch (c) {
-            case ' ':
-            case '\t':
-            case '\r':
-                advance();
-                break;
-            case '\n':
-                advance();
-                line++;
-                column = 1;
-                break;
-            case '/':
-                if (peekNext() == '/') {
-                    skipComment();
-                } else {
-                    return;
-                }
-                break;
-            default:
-                return;
-        }
-    }
-}
-
-void Lexer::skipComment() {
-    while (!isAtEnd() && peek() != '\n') {
-        advance();
-    }
-}
-
-void Lexer::scanToken() {
-    skipWhitespace();
-    if (isAtEnd()) return;
-
-    char c = advance();
-    switch (c) {
-        // Punctuation
-        case '(': case ')':
-        case '{': case '}':
-        case ';': case ',':
-            addToken(TokenType::PUNCTUATION);
-            break;
-
-        // Arithmetic & comparison operators
-        case '+': case '-': case '*': case '/':
-            addToken(TokenType::OPERATOR);
-            break;
-
-        case '=':
-            addToken(match('=') ? TokenType::OPERATOR : TokenType::OPERATOR);
-            break;
-
-        case '!':
-            addToken(match('=') ? TokenType::OPERATOR : TokenType::OPERATOR);
-            break;
-
-        case '<':
-            addToken(match('=') ? TokenType::OPERATOR : TokenType::OPERATOR);
-            break;
-
-        case '>':
-            addToken(match('=') ? TokenType::OPERATOR : TokenType::OPERATOR);
-            break;
-
-        case '&':
-            addToken(match('&') ? TokenType::OPERATOR : TokenType::OPERATOR);
-            break;
-
-        case '|':
-            addToken(match('|') ? TokenType::OPERATOR : TokenType::OPERATOR);
-            break;
-
-        case '"':
-            stringLiteral();
-            break;
-
-        case '\'':
-            charLiteral();
-            break;
-
-        default:
-            if (std::isdigit(c)) {
-                number();
-            } else if (std::isalpha(c) || c == '_') {
-                identifier();
-            } else {
-                tokens.emplace_back(TokenType::UNKNOWN, std::string(1, c), line, column);
-            }
-            break;
-    }
-}
-
-void Lexer::addToken(TokenType type) {
-    std::string text = source.substr(start, current - start);
-    tokens.emplace_back(type, text, line, column);
-}
-
-void Lexer::identifier() {
-    while (!isAtEnd() && (std::isalnum(peek()) || peek() == '_')) {
-        advance();
-    }
-
-    std::string text = source.substr(start, current - start);
-    static const std::unordered_map<std::string, TokenType> keywords = {
-        {"int", TokenType::KEYWORD},
-        {"return", TokenType::KEYWORD},
-        {"if", TokenType::KEYWORD},
-        {"else", TokenType::KEYWORD},
-        {"while", TokenType::KEYWORD},
-        {"for", TokenType::KEYWORD},
-        {"void", TokenType::KEYWORD},
-        {"char", TokenType::KEYWORD},
-        {"float", TokenType::KEYWORD},
-        {"bool", TokenType::KEYWORD},
-        {"true", TokenType::KEYWORD},
-        {"false", TokenType::KEYWORD}
-    };
-
-    TokenType type = TokenType::IDENTIFIER;
-    auto it = keywords.find(text);
-    if (it != keywords.end()) {
-        type = it->second;
-    }
-
-    tokens.emplace_back(type, text, line, column);
-}
-
-void Lexer::number() {
-    while (!isAtEnd() && std::isdigit(peek())) {
-        advance();
-    }
-
-    // Optional: support for decimal values
-    if (!isAtEnd() && peek() == '.' && std::isdigit(peekNext())) {
-        advance(); // consume '.'
-        while (!isAtEnd() && std::isdigit(peek())) {
-            advance();
-        }
-    }
-
-    std::string numStr = source.substr(start, current - start);
-    tokens.emplace_back(TokenType::NUMBER, numStr, line, column);
-}
-
-void Lexer::stringLiteral() {
-    while (!isAtEnd() && peek() != '"') {
-        if (peek() == '\n') {
-            line++;
-            column = 1;
-        }
-        advance();
-    }
-
-    if (isAtEnd()) {
-        std::cerr << "Unterminated string at line " << line << "\n";
-        return;
-    }
-
-    advance(); // Consume closing quote
-    std::string value = source.substr(start + 1, current - start - 2); // Exclude quotes
-    tokens.emplace_back(TokenType::STRING_LITERAL, value, line, column);
-}
-
-void Lexer::charLiteral() {
-    if (isAtEnd()) {
-        std::cerr << "Unterminated character literal at line " << line << "\n";
-        return;
-    }
-
-    char value = advance();
-    if (value == '\\') {
-        // Escape sequence, consume next char
-        value = advance(); // e.g., 'n', 't'
-    }
-
-    if (!match('\'')) {
-        std::cerr << "Unterminated character literal at line " << line << "\n";
-        return;
-    }
-
-    std::string valStr = source.substr(start + 1, current - start - 2); // Without quotes
-    tokens.emplace_back(TokenType::CHAR_LITERAL, valStr, line, column);
 }

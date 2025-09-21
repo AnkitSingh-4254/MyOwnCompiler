@@ -5,6 +5,8 @@
 #include <unordered_map>
 #include <memory>
 #include "ast.h"
+#include "../semantic/semantic.h"
+
 
 // Enum for the intermediate code opcodes
 enum class OpCode {

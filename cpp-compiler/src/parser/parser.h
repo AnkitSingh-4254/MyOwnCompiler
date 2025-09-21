@@ -1,45 +1,35 @@
-#pragma once
+// src/parser/parser.h
+// This header file defines the structure for the Abstract Syntax Tree (AST)
+// and the declaration for the parser function.
+
+#ifndef PARSER_H
+#define PARSER_H
 
 #include <vector>
+#include <string>
 #include <memory>
-#include "lexer.h"
-#include "ast.h"
+#include "lexer/lexer.h"
 
-// Forward declarations for top-level AST nodes if needed
-class ASTNode;
-class ProgramNode;
+// Define a simple node for the Abstract Syntax Tree used by the parser.
+// Kept minimal; later phases use shared AST under common/ast.h
+struct ParserASTNode {
+    enum NodeType {
+        EXPRESSION,
+        BINARY_OP,
+        NUMBER_LITERAL,
+        ID
+    };
 
-class Parser {
-public:
-    explicit Parser(const std::vector<Token>& tokens);
+    NodeType type;
+    std::string value;
+    std::vector<std::unique_ptr<ParserASTNode>> children;
 
-    // Entry point for parsing
-    std::unique_ptr<ProgramNode> parseProgram();
-
-private:
-    const Token& peek() const;
-    const Token& previous() const;
-    const Token& advance();
-    const Token& consume(TokenType expected, const std::string& errorMessage);
-    bool match(TokenType type);
-    bool matchOperator(const std::string& op);
-    bool check(TokenType type) const;
-    bool isAtEnd() const;
-
-    void synchronize(); // error recovery
-
-    // Parser rule helpers (suggested for a toy C-like language)
-    std::unique_ptr<ASTNode> parseDeclaration();
-    std::unique_ptr<ASTNode> parseStatement();
-    std::unique_ptr<ASTNode> parseExpression();
-    std::unique_ptr<ASTNode> parseAssignment();
-    std::unique_ptr<ASTNode> parseEquality();
-    std::unique_ptr<ASTNode> parseComparison();
-    std::unique_ptr<ASTNode> parseTerm();
-    std::unique_ptr<ASTNode> parseFactor();
-    std::unique_ptr<ASTNode> parseUnary();
-    std::unique_ptr<ASTNode> parsePrimary();
-
-    std::vector<Token> tokens;
-    size_t current = 0;
+    ParserASTNode(NodeType type, const std::string& value) : type(type), value(value) {}
+    virtual ~ParserASTNode() = default;
 };
+
+// Declares the main parsing function.
+// It will take a vector of tokens and build an AST for a single statement/expression.
+std::unique_ptr<ParserASTNode> parse(const std::vector<Token>& tokens);
+
+#endif

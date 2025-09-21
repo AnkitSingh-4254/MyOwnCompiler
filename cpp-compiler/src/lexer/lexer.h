@@ -1,63 +1,36 @@
-#pragma once
+// src/lexer/lexer.h
+// This header file defines the token types and the Token structure
+// for the lexical analyzer.
+
+#ifndef LEXER_H
+#define LEXER_H
 
 #include <string>
 #include <vector>
-#include <memory>
-#include <unordered_map>
-#include <cctype>
-#include <iostream>
 
-// Token types for your language
-enum class TokenType {
-    IDENTIFIER,
-    KEYWORD,
-    NUMBER,
-    OPERATOR,
-    PUNCTUATION,
-    STRING_LITERAL,
-    CHAR_LITERAL,
-    END_OF_FILE,
-    UNKNOWN
+// Define the different types of tokens our lexer can recognize.
+enum TokenType {
+    NUMBER,     // E.g., 1, 10, 500
+    ID,         // E.g., x, y, myVariable
+    PLUS,       // '+' operator
+    MINUS,      // '-' operator
+    MULT,       // '*' operator
+    DIV,        // '/' operator
+    ASSIGN,     // '=' assignment operator
+    SEMI,       // ';' statement terminator
+    UNKNOWN     // Any character not recognized by the lexer
 };
 
-// Struct representing a single token
+// Represents a single token with its type and value (lexeme).
 struct Token {
     TokenType type;
-    std::string lexeme;
-    int line;
-    int column;
-
-    Token(TokenType type, const std::string& lexeme, int line = 0, int column = 0)
-        : type(type), lexeme(lexeme), line(line), column(column) {}
+    std::string value;
 };
 
-class Lexer {
-public:
-    explicit Lexer(const std::string& sourceCode);
-    std::vector<Token> tokenize();
+// Declares the main tokenization function.
+std::vector<Token> tokenize(const std::string& input);
 
-private:
-    char peek() const;
-    char peekNext() const;
-    char advance();
-    bool match(char expected);
-    bool isAtEnd() const;
+// Declares a helper function to convert TokenType to a string for easy printing.
+std::string tokenTypeToStr(TokenType type);
 
-    void skipWhitespace();
-    void skipComment();
-
-    void scanToken();
-    void identifier();
-    void number();
-    void stringLiteral();
-    void charLiteral();
-    void addToken(TokenType type);
-
-    std::string source;
-    std::vector<Token> tokens;
-    size_t start = 0;
-    size_t current = 0;
-    int line = 1;
-    int column = 1;
-};
-
+#endif
